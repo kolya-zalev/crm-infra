@@ -33,6 +33,25 @@ services:
       timeout: 3s
       retries: 15
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: crm-rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: crm
+      RABBITMQ_DEFAULT_PASS: crm123
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
   users-service:
     build:
       context: ../crm-users-service
@@ -89,3 +108,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  rabbitmqdata:
