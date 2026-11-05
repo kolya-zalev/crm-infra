@@ -1,0 +1,91 @@
+name: crm-server
+
+services:
+  db:
+    image: postgres:16
+    container_name: crm-database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm123
+      POSTGRES_DB: crm_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm -d crm_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    container_name: crm-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  users-service:
+    build:
+      context: ../crm-users-service
+    container_name: crm-users-service
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - USERS_DATABASE_URL=postgresql://crm:crm123@db:5432/users_db
+      - USERS_SERVICE_PORT=4002
+
+  leads-service:
+    build:
+      context: ../crm-leads-service
+    container_name: crm-leads-service
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - LEADS_DATABASE_URL=postgresql://crm:crm123@db:5432/leads_db
+      - LEADS_SERVICE_PORT=4003
+
+  api:
+    build:
+      context: ../crm-gateway
+    container_name: crm-backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+      leads-service:
+        condition: service_started
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://crm:crm123@db:5432/crm_db
+      - AUTH_DATABASE_URL=postgresql://crm:crm123@db:5432/auth_db
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?задай BETTER_AUTH_SECRET в crm-infra/.env}
+      - FRONTEND_URL=http://localhost:3000
+      - USERS_SERVICE_HOST=users-service
+      - USERS_SERVICE_PORT=4002
+      - LEADS_SERVICE_HOST=leads-service
+      - LEADS_SERVICE_PORT=4003
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+volumes:
+  pgdata:
+  redisdata:
