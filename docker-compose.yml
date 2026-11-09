@@ -63,6 +63,19 @@ services:
       - NODE_ENV=production
       - USERS_DATABASE_URL=postgresql://crm:crm123@db:5432/users_db
       - USERS_SERVICE_PORT=4002
+  notifications-service:
+    build:
+      context: ../crm-notifications-service
+    container_name: crm-notifications-service
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - NOTIFICATIONS_DATABASE_URL=postgresql://crm:crm123@db:5432/notifications_db
+      - RABBIT_URL=amqp://crm:crm123@rabbitmq:5672
 
   leads-service:
     build:
@@ -85,11 +98,15 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       db:
         condition: service_healthy
       users-service:
         condition: service_started
       leads-service:
+        condition: service_started
+      notifications-service:
         condition: service_started
     environment:
       - PORT=3001
@@ -100,6 +117,7 @@ services:
       - FRONTEND_URL=http://localhost:3000
       - USERS_SERVICE_HOST=users-service
       - USERS_SERVICE_PORT=4002
+      - RABBIT_URL=amqp://crm:crm123@rabbitmq:5672
       - LEADS_SERVICE_HOST=leads-service
       - LEADS_SERVICE_PORT=4003
       - REDIS_HOST=redis
