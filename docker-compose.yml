@@ -77,6 +77,20 @@ services:
       - NOTIFICATIONS_DATABASE_URL=postgresql://crm:crm123@db:5432/notifications_db
       - RABBIT_URL=amqp://crm:crm123@rabbitmq:5672
 
+  chat-service:
+    build:
+      context: ../crm-chat-service
+    container_name: crm-chat-service
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - CHAT_DATABASE_URL=postgresql://crm:crm123@db:5432/chat_db
+      - RABBIT_URL=amqp://crm:crm123@rabbitmq:5672
+
   leads-service:
     build:
       context: ../crm-leads-service
@@ -107,6 +121,8 @@ services:
       leads-service:
         condition: service_started
       notifications-service:
+        condition: service_started
+      chat-service:
         condition: service_started
     environment:
       - PORT=3001
