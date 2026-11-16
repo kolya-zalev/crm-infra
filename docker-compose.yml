@@ -103,6 +103,20 @@ services:
       - LEADS_DATABASE_URL=postgresql://crm:crm123@db:5432/leads_db
       - LEADS_SERVICE_PORT=4003
 
+  tasks-service:
+    build:
+      context: ../crm-tasks-service
+    container_name: crm-tasks-service
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - TASKS_DATABASE_URL=postgresql://crm:crm123@db:5432/tasks_db
+      - RABBIT_URL=amqp://crm:crm123@rabbitmq:5672
+
   api:
     build:
       context: ../crm-gateway
@@ -123,6 +137,8 @@ services:
       notifications-service:
         condition: service_started
       chat-service:
+        condition: service_started
+      tasks-service:
         condition: service_started
     environment:
       - PORT=3001
