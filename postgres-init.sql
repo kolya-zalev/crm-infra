@@ -4,3 +4,4 @@ CREATE DATABASE leads_db;
 CREATE DATABASE notifications_db;
 CREATE DATABASE chat_db;
 CREATE DATABASE tasks_db;
+CREATE DATABASE activity_db;

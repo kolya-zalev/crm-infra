@@ -117,6 +117,19 @@ services:
       - TASKS_DATABASE_URL=postgresql://crm:crm123@db:5432/tasks_db
       - RABBIT_URL=amqp://crm:crm123@rabbitmq:5672
 
+  activity-service:
+    build:
+      context: ../crm-activity-service
+    container_name: crm-activity-service
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - ACTIVITY_DATABASE_URL=postgresql://crm:crm123@db:5432/activity_db
+      - RABBIT_URL=amqp://crm:crm123@rabbitmq:5672
   api:
     build:
       context: ../crm-gateway
@@ -139,6 +152,8 @@ services:
       chat-service:
         condition: service_started
       tasks-service:
+        condition: service_started
+      activity-service:
         condition: service_started
     environment:
       - PORT=3001
